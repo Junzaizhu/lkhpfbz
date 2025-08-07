@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户评估表</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e40af',
+            secondary: '#3b82f6',
+            accent: '#60a5fa',
+            neutral: '#f1f5f9',
+            'neutral-dark': '#334155',
+            danger: '#dc2626',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .table-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .cell-hover {
+        @apply transition-all duration-200 hover:bg-blue-50;
+      }
+      .editable-cell {
+        @apply focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+  <!-- 容器改为左对齐 -->
+  <div class="container px-4 py-6 max-w-3xl">
+    <!-- 页面标题 -->
+    <header class="mb-4">
+      <h1 class="text-[clamp(1.2rem,2vw,1.8rem)] font-bold text-primary mb-1 flex items-center">
+        <i class="fa fa-bar-chart mr-2 text-secondary"></i>客户评估表
+      </h1>
+      <p class="text-gray-600 text-sm">编辑分值后将自动计算加权得分，风险评估部分为扣分项</p>
+    </header>
+    
+    <!-- 表格容器 -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md table-shadow transition-all duration-300 hover:shadow-lg">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-neutral">
+          <tr>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">评估维度</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">维度总权重</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">评估指标</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">指标权重</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">分值（百分制）</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">加权得分</th>
+            <th class="px-3 py-2 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">评估标准</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200" id="assessmentTable">
+          <!-- 战略匹配 -->
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="2">战略匹配</td>
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="2">30%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">能力匹配</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">50%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="0">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">15.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>a.业务领域与九洲的匹配程度高</li>
+                <li>b.且有明确的外包战略</li>
+                <li>a+b=100分，生产外包=70分，其他0分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">行业标杆效应</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">50%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="1">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">15.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>属于TOP100跨国药企 100分；</li>
+                <li>属于细分领域TOP5 100分；</li>
+                <li>其他0分</li>
+              </ul>
+            </td>
+          </tr>
+          
+          <!-- 客户潜力 -->
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="4">客户潜力</td>
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="4">20%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">客户营收</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">50%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="2">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">10.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>新药公司：</li>
+                <li>＞20亿，100分；</li>
+                <li>10亿&lt;X≤20亿，80分；</li>
+                <li>1亿＜X≤10亿，60分；</li>
+                <li>1000万&lt;X≤1亿，40分；</li>
+                <li>≤1000万，20分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">是否上市公司</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">20%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="3">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">4.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>上市药企，100分；</li>
+                <li>上市biotech，70分；</li>
+                <li>非上市biotech公司，据融资额打分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">管线临床阶段</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">20%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="4">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">4.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>有至少1个：</li>
+                <li>商业化阶段，100分；</li>
+                <li>NDA阶段，80分；</li>
+                <li>临床三期/关键临床，60分；</li>
+                <li>临床一/二期，40分；</li>
+                <li>临床前，20分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">产品管线数</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">10%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="5">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">2.00</td>
+            <td class="px-3 py-1.5">
+              <p class="text-xs">一个产品管线20分（5个及以上100分）</p>
+            </td>
+          </tr>
+          
+          <!-- 合作现状 财务贡献度 -->
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="5">合作现状<br>财务贡献度</td>
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="5">50%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">上年度销售额</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">20%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="6">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">10.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>＞5000万 RMB：100分；</li>
+                <li>2000-5000万 RMB：60分；</li>
+                <li>＜2000万 RMB：30分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">三年累计销售额</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">40%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="7">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">20.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>＞1.2亿 RMB：100分；</li>
+                <li>5000-1.2亿 RMB：60分；</li>
+                <li>＜5000万RMB：30分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">NDA产品，商业化产品合作个数</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">20%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="8">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">10.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>有商业化产品100分；</li>
+                <li>有NDA产品合作50分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">客户粘性，客户续约</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">10%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="9">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">5.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>上一年度有存续的项目续约合同，为100分；</li>
+                <li>其他为0分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">合作深度</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">10%</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <input type="number" min="0" max="100" value="100" class="editable-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="10">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap weighted-score font-medium">5.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>有合作的产品，属于客户：</li>
+                <li>唯一供应商，90分；</li>
+                <li>第一供应商，70分；</li>
+                <li>第二供应商，50分；</li>
+                <li>其他供应商，20分；</li>
+                <li>如有签署战略合作协议，增加10分</li>
+              </ul>
+            </td>
+          </tr>
+          
+          <!-- 风险评估 - 所有项目都添加扣分项 -->
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="3">风险评估</td>
+            <td class="px-3 py-1.5 whitespace-nowrap" rowspan="3">/</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">付款稳定性</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">扣分项</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <span class="inline-block mr-1 text-danger font-medium">-</span>
+              <input type="number" min="0" max="100" value="0" class="deduct-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="11">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap deduct-result font-medium text-danger">0.00</td>
+            <td class="px-3 py-1.5">
+              <ul class="text-xs">
+                <li>逾期1年以上，扣10分；</li>
+                <li>逾期0.5-1年，扣5分</li>
+              </ul>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">历史合同取消情况</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">扣分项</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <span class="inline-block mr-1 text-danger font-medium">-</span>
+              <input type="number" min="0" max="100" value="0" class="deduct-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="12">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap deduct-result font-medium text-danger">0.00</td>
+            <td class="px-3 py-1.5">
+              <p class="text-xs">项目中途中止后，费用不结算不支付的客户，直接归为C类待发展客户</p>
+            </td>
+          </tr>
+          <tr class="cell-hover">
+            <td class="px-3 py-1.5 whitespace-nowrap">经营风险</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">扣分项</td>
+            <td class="px-3 py-1.5 whitespace-nowrap">
+              <span class="inline-block mr-1 text-danger font-medium">-</span>
+              <input type="number" min="0" max="100" value="0" class="deduct-score w-14 px-1.5 py-0.5 border rounded text-center text-sm" data-row="13">
+            </td>
+            <td class="px-3 py-1.5 whitespace-nowrap deduct-result font-medium text-danger">0.00</td>
+            <td class="px-3 py-1.5">
+              <p class="text-xs">公司财务状况非常糟糕，有破产可能的客户，直接归为C类待发展客户</p>
+            </td>
+          </tr>
+          
+          <!-- 总分 -->
+          <tr class="bg-neutral font-bold">
+            <td class="px-3 py-1.5 whitespace-nowrap" colspan="5"></td>
+            <td class="px-3 py-1.5 whitespace-nowrap total-score text-primary">100.00</td>
+            <td class="px-3 py-1.5 whitespace-nowrap"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="mt-4 flex flex-wrap gap-3">
+      <button id="resetBtn" class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-md shadow hover:bg-gray-300 transition-all duration-200 flex items-center text-sm">
+        <i class="fa fa-refresh mr-1.5"></i>重置分值
+      </button>
+    </div>
+    
+    <!-- 信息提示 -->
+    <div id="notification" class="fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center text-sm"></div>
+  </div>
+
+  <script>
+    // 存储权重数据以便计算
+    const weightData = [
+      { dimensionWeight: 0.3, indicatorWeight: 0.5 },  // 战略匹配 - 能力匹配
+      { dimensionWeight: 0.3, indicatorWeight: 0.5 },  // 战略匹配 - 行业标杆效应
+      { dimensionWeight: 0.2, indicatorWeight: 0.5 },  // 客户潜力 - 客户营收
+      { dimensionWeight: 0.2, indicatorWeight: 0.2 },  // 客户潜力 - 是否上市公司
+      { dimensionWeight: 0.2, indicatorWeight: 0.2 },  // 客户潜力 - 管线临床阶段
+      { dimensionWeight: 0.2, indicatorWeight: 0.1 },  // 客户潜力 - 产品管线数
+      { dimensionWeight: 0.5, indicatorWeight: 0.2 },  // 合作现状 - 上年度销售额
+      { dimensionWeight: 0.5, indicatorWeight: 0.4 },  // 合作现状 - 三年累计销售额
+      { dimensionWeight: 0.5, indicatorWeight: 0.2 },  // 合作现状 - NDA产品合作个数
+      { dimensionWeight: 0.5, indicatorWeight: 0.1 },  // 合作现状 - 客户粘性
+      { dimensionWeight: 0.5, indicatorWeight: 0.1 }   // 合作现状 - 合作深度
+    ];
+    
+    // 显示通知
+    function showNotification(message, isSuccess = true) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-0 opacity-100 transition-all duration-300 flex items-center text-sm ${
+        isSuccess ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+      }`;
+      
+      setTimeout(() => {
+        notification.className = 'fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center text-sm';
+      }, 3000);
+    }
+    
+    // 计算加权得分和扣分项
+    function calculateScores() {
+      const scoreInputs = document.querySelectorAll('.editable-score');
+      const scoreElements = document.querySelectorAll('.weighted-score');
+      const deductInputs = document.querySelectorAll('.deduct-score');
+      const deductElements = document.querySelectorAll('.deduct-result');
+      
+      let totalScore = 0;
+      let totalDeduction = 0;
+      
+      // 计算各项加权得分
+      scoreInputs.forEach((input, index) => {
+        const score = parseFloat(input.value) || 0;
+        const { dimensionWeight, indicatorWeight } = weightData[index];
+        const weightedScore = dimensionWeight * indicatorWeight * score;
+        
+        // 更新显示并添加动画效果
+        scoreElements[index].textContent = weightedScore.toFixed(2);
+        scoreElements[index].classList.add('text-primary');
+        setTimeout(() => {
+          scoreElements[index].classList.remove('text-primary');
+        }, 500);
+        
+        totalScore += weightedScore;
+      });
+      
+      // 处理所有扣分项
+      deductInputs.forEach((input, index) => {
+        const deductScore = parseFloat(input.value) || 0;
+        deductElements[index].textContent = deductScore.toFixed(2);
+        deductElements[index].classList.add('text-danger');
+        setTimeout(() => {
+          deductElements[index].classList.remove('text-danger');
+        }, 500);
+        
+        totalDeduction += deductScore;
+      });
+      
+      // 计算最终总分（减去所有扣分项总和）
+      const finalScore = totalScore - totalDeduction;
+      const totalScoreElement = document.querySelector('.total-score');
+      totalScoreElement.textContent = finalScore.toFixed(2);
+      
+      // 如果最终得分是负数，显示红色
+      if (finalScore < 0) {
+        totalScoreElement.classList.add('text-danger');
+      } else {
+        totalScoreElement.classList.remove('text-danger');
+      }
+      
+      totalScoreElement.classList.add('text-primary');
+      setTimeout(() => {
+        totalScoreElement.classList.remove('text-primary');
+      }, 500);
+    }
+    
+    // 为所有加分项输入框添加事件监听
+    document.querySelectorAll('.editable-score').forEach(input => {
+      input.addEventListener('input', calculateScores);
+      input.addEventListener('blur', () => {
+        // 确保分值在0-100之间
+        if (input.value < 0) input.value = 0;
+        if (input.value > 100) input.value = 100;
+        if (isNaN(input.value)) input.value = 0;
+        calculateScores();
+      });
+      
+      // 添加聚焦和失焦效果
+      input.addEventListener('focus', () => {
+        input.classList.add('ring-2', 'ring-secondary');
+      });
+      input.addEventListener('blur', () => {
+        input.classList.remove('ring-2', 'ring-secondary');
+      });
+    });
+    
+    // 为所有扣分项输入框添加事件监听
+    document.querySelectorAll('.deduct-score').forEach(input => {
+      input.addEventListener('input', calculateScores);
+      input.addEventListener('blur', function() {
+        // 确保扣分值在0-100之间
+        if (this.value < 0) this.value = 0;
+        if (this.value > 100) this.value = 100;
+        if (isNaN(this.value)) this.value = 0;
+        calculateScores();
+      });
+      
+      // 添加聚焦和失焦效果
+      input.addEventListener('focus', function() {
+        this.classList.add('ring-2', 'ring-danger');
+      });
+      input.addEventListener('blur', function() {
+        this.classList.remove('ring-2', 'ring-danger');
+      });
+    });
+    
+    // 重置按钮功能
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      document.querySelectorAll('.editable-score').forEach(input => {
+        input.value = 100;
+      });
+      // 同时重置所有扣分项
+      document.querySelectorAll('.deduct-score').forEach(input => {
+        input.value = 0;
+      });
+      calculateScores();
+      showNotification('所有分值已重置为默认值');
+    });
+    
+    // 页面加载时计算一次
+    window.addEventListener('load', () => {
+      // 添加表格加载动画
+      const table = document.querySelector('table');
+      table.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+      setTimeout(() => {
+        table.classList.remove('opacity-0');
+      }, 100);
+      
+      calculateScores();
+    });
+  </script>
+</body>
+</html>
+    
