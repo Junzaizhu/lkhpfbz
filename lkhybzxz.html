@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>自定义客户评估表（维度权重校验）</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e40af',
+            secondary: '#3b82f6',
+            accent: '#60a5fa',
+            neutral: '#f1f5f9',
+            'neutral-dark': '#334155',
+            danger: '#dc2626',
+            success: '#16a34a',
+            warning: '#d97706',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .table-shadow {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      }
+      .cell-hover {
+        @apply transition-all duration-200 hover:bg-blue-50;
+      }
+      .editable-cell {
+        @apply focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all duration-200;
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      .slide-in {
+        animation: slideIn 0.3s ease-in-out;
+      }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 m-0">
+  <!-- 主容器 -->
+  <div class="container px-4 py-6 w-full max-w-none">
+    <!-- 页面标题 -->
+    <header class="mb-6">
+      <h1 class="text-[clamp(1.2rem,2vw,1.8rem)] font-bold text-primary mb-1 flex items-center">
+        <i class="fa fa-bar-chart mr-2 text-secondary"></i>自定义客户评估表
+      </h1>
+      <p class="text-gray-600 text-sm">可添加自定义评估维度、指标和权重，自动校验权重总和</p>
+    </header>
+    
+    <!-- 控制按钮区域 -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6 slide-in">
+      <div class="flex flex-wrap gap-3 items-center">
+        <button id="addDimensionBtn" class="px-4 py-2 bg-primary text-white rounded-md shadow hover:bg-primary/90 transition-all duration-200 flex items-center text-sm">
+          <i class="fa fa-plus-circle mr-1.5"></i>添加评估维度
+        </button>
+        <div class="ml-auto text-sm text-gray-500">
+          <span class="inline-block w-3 h-3 bg-success rounded-full mr-1"></span>加分项（有权重）
+          <span class="inline-block w-3 h-3 bg-danger rounded-full mr-1 ml-3"></span>减分项（无权重）
+        </div>
+      </div>
+    </div>
+    
+    <!-- 表格容器 -->
+    <div class="overflow-x-auto bg-white rounded-lg shadow-md table-shadow transition-all duration-300 hover:shadow-lg mb-6">
+      <table class="min-w-full divide-y divide-gray-200 text-sm" id="assessmentTable">
+        <thead class="bg-neutral">
+          <tr>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-32">评估维度</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-24">维度权重(%)</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-32">评估指标</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-24">指标权重(%)</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-20">类型</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-24">分值(百分制)</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-24">加权得分</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider">评估标准</th>
+            <th class="px-3 py-3 text-left text-xs font-semibold text-neutral-dark uppercase tracking-wider w-16">操作</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200" id="tableBody">
+          <!-- 内容将通过JavaScript动态生成 -->
+        </tbody>
+        <!-- 总分行 -->
+        <tfoot>
+          <tr class="bg-neutral font-bold">
+            <td class="px-3 py-2 whitespace-nowrap" colspan="6"></td>
+            <td class="px-3 py-2 whitespace-nowrap total-score text-primary text-lg">0.00</td>
+            <td class="px-3 py-2 whitespace-nowrap"></td>
+            <td class="px-3 py-2 whitespace-nowrap"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    
+    <!-- 权重警告区域 -->
+    <div id="weightWarnings" class="space-y-3 mb-6">
+      <!-- 警告信息将动态生成 -->
+    </div>
+    
+    <!-- 信息提示 -->
+    <div id="notification" class="fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center text-sm"></div>
+  </div>
+
+  <script>
+    // 从本地存储加载数据
+    function loadFromLocalStorage() {
+      const savedData = localStorage.getItem('assessmentModel');
+      if (savedData) {
+        try {
+          return JSON.parse(savedData);
+        } catch (e) {
+          console.error('加载本地存储数据失败', e);
+          return null;
+        }
+      }
+      return null;
+    }
+
+    // 保存数据到本地存储
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem('assessmentModel', JSON.stringify(assessmentModel));
+        return true;
+      } catch (e) {
+        console.error('保存数据到本地存储失败', e);
+        return false;
+      }
+    }
+
+    // 默认评估模型
+    function getDefaultModel() {
+      return {
+        dimensions: [
+          {
+            id: 'dim-1',
+            name: '战略匹配',
+            weight: 30,
+            indicators: [
+              {
+                id: 'ind-1-1',
+                name: '能力匹配',
+                weight: 50,
+                type: 'add',
+                criteria: '业务领域匹配度高且有明确外包战略',
+                score: 100
+              },
+              {
+                id: 'ind-1-2',
+                name: '行业标杆效应',
+                weight: 50,
+                type: 'add',
+                criteria: '属于TOP100跨国药企或细分领域TOP5',
+                score: 100
+              }
+            ]
+          },
+          {
+            id: 'dim-2',
+            name: '风险评估',
+            weight: 0,
+            indicators: [
+              {
+                id: 'ind-2-1',
+                name: '付款稳定性',
+                weight: 0,
+                type: 'deduct',
+                criteria: '逾期付款情况',
+                score: 0
+              }
+            ]
+          }
+        ]
+      };
+    }
+    
+    // 初始化评估模型（优先从本地存储加载）
+    let assessmentModel = loadFromLocalStorage() || getDefaultModel();
+    
+    // 生成唯一ID
+    function generateId(prefix) {
+      return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    }
+    
+    // 显示通知
+    function showNotification(message, isSuccess = true) {
+      const notification = document.getElementById('notification');
+      notification.textContent = message;
+      notification.className = `fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-0 opacity-100 transition-all duration-300 flex items-center text-sm ${
+        isSuccess ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+      }`;
+      
+      setTimeout(() => {
+        notification.className = 'fixed bottom-5 right-5 px-4 py-2 rounded-md shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center text-sm';
+      }, 3000);
+    }
+    
+    // 检查所有维度的权重是否有效
+    function checkAllWeights() {
+      const warningsContainer = document.getElementById('weightWarnings');
+      warningsContainer.innerHTML = '';
+      let hasWarnings = false;
+      
+      // 1. 检查加分项维度总权重是否为100%
+      const addDimensionTotal = assessmentModel.dimensions
+        .filter(dim => dim.indicators.some(ind => ind.type === 'add'))
+        .reduce((sum, dim) => sum + parseFloat(dim.weight || 0), 0);
+      
+      if (Math.abs(addDimensionTotal - 100) > 0.1) {
+        const warning = createWarningElement(
+          `所有加分项维度的权重总和为 ${addDimensionTotal.toFixed(1)}%，应为100%`
+        );
+        warningsContainer.appendChild(warning);
+        hasWarnings = true;
+      }
+      
+      // 2. 检查每个维度内的指标权重总和是否为100%（仅针对加分项）
+      assessmentModel.dimensions.forEach(dimension => {
+        const addIndicators = dimension.indicators.filter(ind => ind.type === 'add');
+        if (addIndicators.length > 0) {
+          const indicatorTotal = addIndicators.reduce((sum, ind) => sum + parseFloat(ind.weight || 0), 0);
+          
+          if (Math.abs(indicatorTotal - 100) > 0.1) {
+            const warning = createWarningElement(
+              `维度"${dimension.name}"内加分项指标的权重总和为 ${indicatorTotal.toFixed(1)}%，应为100%`
+            );
+            warningsContainer.appendChild(warning);
+            hasWarnings = true;
+          }
+        }
+      });
+      
+      return !hasWarnings;
+    }
+    
+    // 创建警告元素
+    function createWarningElement(message) {
+      const div = document.createElement('div');
+      div.className = 'bg-amber-50 border-l-4 border-amber-400 p-3 rounded fade-in';
+      div.innerHTML = `
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fa fa-exclamation-triangle text-amber-500"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-amber-700">${message}</p>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+    
+    // 计算总分
+    function calculateScores() {
+      let totalScore = 0;
+      
+      // 遍历所有维度和指标计算得分
+      assessmentModel.dimensions.forEach(dimension => {        
+        dimension.indicators.forEach(indicator => {
+          const score = parseFloat(indicator.score) || 0;
+          let weightedScore;
+          
+          // 加分项：计算加权得分 (维度权重% * 指标权重% * 分值 / 10000)
+          if (indicator.type === 'add') {
+            const dimensionWeight = parseFloat(dimension.weight) || 0;
+            const indicatorWeight = parseFloat(indicator.weight) || 0;
+            weightedScore = (dimensionWeight * indicatorWeight * score) / 10000;
+          } 
+          // 扣分项：直接使用分值（已在UI中显示负号）
+          else {
+            weightedScore = -score;
+          }
+          
+          // 更新DOM中的加权得分
+          const scoreElement = document.querySelector(`[data-indicator-id="${indicator.id}"] .weighted-score`);
+          if (scoreElement) {
+            scoreElement.textContent = weightedScore.toFixed(2);
+            
+            // 添加分数变化动画
+            scoreElement.classList.add(indicator.type === 'deduct' ? 'text-danger' : 'text-success');
+            setTimeout(() => {
+              scoreElement.classList.remove(indicator.type === 'deduct' ? 'text-danger' : 'text-success');
+            }, 500);
+          }
+          
+          totalScore += weightedScore;
+        });
+      });
+      
+      // 更新总分
+      const totalScoreElement = document.querySelector('.total-score');
+      totalScoreElement.textContent = totalScore.toFixed(2);
+      
+      // 如果总分是负数，显示红色
+      if (totalScore < 0) {
+        totalScoreElement.classList.add('text-danger');
+      } else {
+        totalScoreElement.classList.remove('text-danger');
+      }
+      
+      // 添加总分变化动画
+      totalScoreElement.classList.add('text-primary');
+      setTimeout(() => {
+        totalScoreElement.classList.remove('text-primary');
+      }, 500);
+      
+      // 检查权重是否有效
+      checkAllWeights();
+    }
+    
+    // 渲染表格
+    function renderTable() {
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+      
+      assessmentModel.dimensions.forEach((dimension) => {
+        // 检查维度是否包含加分项
+        const hasAddIndicators = dimension.indicators.some(ind => ind.type === 'add');
+        
+        const dimensionRows = dimension.indicators.map((indicator, indIndex) => {
+          const isFirstIndicator = indIndex === 0;
+          const typeClass = indicator.type === 'add' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger';
+          
+          // 扣分项特殊处理
+          const isDeduct = indicator.type === 'deduct';
+          
+          return `
+            <tr class="cell-hover fade-in" data-dimension-id="${dimension.id}" data-indicator-id="${indicator.id}">
+              ${isFirstIndicator ? `
+                <td class="px-3 py-2 whitespace-nowrap" rowspan="${dimension.indicators.length}">
+                  <input type="text" value="${dimension.name}" class="dimension-name w-full px-2 py-1 border rounded text-sm editable-cell" data-dimension-id="${dimension.id}">
+                </td>
+                <td class="px-3 py-2 whitespace-nowrap" rowspan="${dimension.indicators.length}">
+                  ${isDeduct && !hasAddIndicators ? 
+                    // 纯扣分项维度不显示权重
+                    '<span class="text-gray-500">/</span>' : 
+                    // 包含加分项的维度显示权重输入框
+                    `<input type="number" min="0" max="100" value="${dimension.weight}" class="dimension-weight w-full px-2 py-1 border rounded text-sm editable-cell text-center" data-dimension-id="${dimension.id}">`
+                  }
+                </td>
+              ` : ''}
+              
+              <td class="px-3 py-2 whitespace-nowrap">
+                <input type="text" value="${indicator.name}" class="indicator-name w-full px-2 py-1 border rounded text-sm editable-cell" data-indicator-id="${indicator.id}">
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                ${isDeduct ? 
+                  // 扣分项不显示指标权重
+                  '<span class="text-gray-500">/</span>' : 
+                  // 加分项显示指标权重输入框
+                  `<input type="number" min="0" max="100" value="${indicator.weight}" class="indicator-weight w-full px-2 py-1 border rounded text-sm editable-cell text-center" data-indicator-id="${indicator.id}">`
+                }
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <select class="indicator-type w-full px-2 py-1 border rounded text-sm editable-cell ${typeClass}" data-indicator-id="${indicator.id}">
+                  <option value="add" ${indicator.type === 'add' ? 'selected' : ''}>加分</option>
+                  <option value="deduct" ${indicator.type === 'deduct' ? 'selected' : ''}>扣分</option>
+                </select>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <div class="flex items-center">
+                  ${isDeduct ? '<span class="text-danger mr-1">-</span>' : ''}
+                  <input type="number" min="0" max="100" value="${indicator.score}" class="indicator-score w-full px-2 py-1 border rounded text-sm editable-cell text-center ${isDeduct ? 'text-danger' : ''}" data-indicator-id="${indicator.id}">
+                </div>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap weighted-score font-medium">0.00</td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <textarea class="indicator-criteria w-full px-2 py-1 border rounded text-sm editable-cell text-xs h-10" data-indicator-id="${indicator.id}">${indicator.criteria}</textarea>
+              </td>
+              <td class="px-3 py-2 whitespace-nowrap">
+                <button class="add-indicator-btn text-secondary hover:text-primary transition-colors" data-dimension-id="${dimension.id}" title="添加指标">
+                  <i class="fa fa-plus-circle"></i>
+                </button>
+                <button class="delete-indicator-btn text-danger hover:text-danger/80 transition-colors ml-2" data-indicator-id="${indicator.id}" title="删除指标">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+        
+        // 添加维度分隔线和删除维度按钮
+        const dimensionFooter = `
+          <tr class="bg-gray-50">
+            <td colspan="9" class="px-3 py-1">
+              <div class="flex justify-end">
+                <button class="delete-dimension-btn text-danger hover:text-danger/80 transition-colors text-sm flex items-center" data-dimension-id="${dimension.id}">
+                  <i class="fa fa-trash mr-1"></i> 删除维度
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+        
+        tableBody.innerHTML += dimensionRows + dimensionFooter;
+      });
+      
+      // 添加事件监听器
+      addEventListeners();
+      
+      // 计算分数
+      calculateScores();
+    }
+    
+    // 添加事件监听器
+    function addEventListeners() {
+      // 维度名称编辑
+      document.querySelectorAll('.dimension-name').forEach(input => {
+        input.addEventListener('change', function() {
+          const dimensionId = this.getAttribute('data-dimension-id');
+          const dimension = assessmentModel.dimensions.find(dim => dim.id === dimensionId);
+          if (dimension) {
+            dimension.name = this.value;
+            saveToLocalStorage();
+            showNotification('维度名称已更新');
+            checkAllWeights(); // 重新检查，因为维度名称可能在警告中显示
+          }
+        });
+      });
+      
+      // 维度权重编辑
+      document.querySelectorAll('.dimension-weight').forEach(input => {
+        input.addEventListener('change', function() {
+          const dimensionId = this.getAttribute('data-dimension-id');
+          const dimension = assessmentModel.dimensions.find(dim => dim.id === dimensionId);
+          if (dimension) {
+            let value = parseFloat(this.value) || 0;
+            value = Math.max(0, Math.min(100, value)); // 限制在0-100之间
+            this.value = value;
+            dimension.weight = value;
+            saveToLocalStorage();
+            calculateScores();
+            showNotification('维度权重已更新');
+          }
+        });
+      });
+      
+      // 指标名称编辑
+      document.querySelectorAll('.indicator-name').forEach(input => {
+        input.addEventListener('change', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          updateIndicatorProperty(indicatorId, 'name', this.value);
+        });
+      });
+      
+      // 指标权重编辑（仅加分项）
+      document.querySelectorAll('.indicator-weight').forEach(input => {
+        input.addEventListener('change', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          // 找到对应的指标确认是否为加分项
+          const indicator = findIndicatorById(indicatorId);
+          if (indicator && indicator.type === 'add') {
+            let value = parseFloat(this.value) || 0;
+            value = Math.max(0, Math.min(100, value)); // 限制在0-100之间
+            this.value = value;
+            updateIndicatorProperty(indicatorId, 'weight', value);
+          }
+        });
+      });
+      
+      // 指标类型编辑
+      document.querySelectorAll('.indicator-type').forEach(select => {
+        select.addEventListener('change', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          const newType = this.value;
+          const oldType = findIndicatorById(indicatorId).type;
+          
+          // 如果类型发生变化，重新渲染表格以更新UI
+          if (newType !== oldType) {
+            updateIndicatorProperty(indicatorId, 'type', newType);
+            renderTable(); // 重新渲染以更新权重显示
+          }
+        });
+      });
+      
+      // 指标分数编辑
+      document.querySelectorAll('.indicator-score').forEach(input => {
+        input.addEventListener('change', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          let value = parseFloat(this.value) || 0;
+          value = Math.max(0, Math.min(100, value)); // 限制在0-100之间
+          this.value = value;
+          updateIndicatorProperty(indicatorId, 'score', value);
+        });
+      });
+      
+      // 指标评估标准编辑
+      document.querySelectorAll('.indicator-criteria').forEach(textarea => {
+        textarea.addEventListener('change', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          updateIndicatorProperty(indicatorId, 'criteria', this.value);
+        });
+      });
+      
+      // 添加指标按钮
+      document.querySelectorAll('.add-indicator-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const dimensionId = this.getAttribute('data-dimension-id');
+          addIndicator(dimensionId);
+        });
+      });
+      
+      // 删除指标按钮
+      document.querySelectorAll('.delete-indicator-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const indicatorId = this.getAttribute('data-indicator-id');
+          deleteIndicator(indicatorId);
+        });
+      });
+      
+      // 删除维度按钮
+      document.querySelectorAll('.delete-dimension-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const dimensionId = this.getAttribute('data-dimension-id');
+          deleteDimension(dimensionId);
+        });
+      });
+    }
+    
+    // 根据ID查找指标
+    function findIndicatorById(indicatorId) {
+      for (let dimension of assessmentModel.dimensions) {
+        const indicator = dimension.indicators.find(ind => ind.id === indicatorId);
+        if (indicator) {
+          return indicator;
+        }
+      }
+      return null;
+    }
+    
+    // 更新指标属性
+    function updateIndicatorProperty(indicatorId, property, value) {
+      const indicator = findIndicatorById(indicatorId);
+      if (indicator) {
+        indicator[property] = value;
+        saveToLocalStorage();
+        calculateScores();
+        showNotification('指标已更新');
+        return true;
+      }
+      return false;
+    }
+    
+    // 添加新维度
+    function addDimension() {
+      const newDimension = {
+        id: generateId('dim'),
+        name: '新评估维度',
+        weight: 0,
+        indicators: [
+          {
+            id: generateId('ind'),
+            name: '新评估指标',
+            weight: 100,
+            type: 'add',
+            criteria: '请输入评估标准',
+            score: 100
+          }
+        ]
+      };
+      
+      assessmentModel.dimensions.push(newDimension);
+      if (saveToLocalStorage()) {
+        renderTable();
+        showNotification('已添加新评估维度（数据已保存）');
+      } else {
+        // 保存失败时回滚
+        assessmentModel.dimensions.pop();
+        showNotification('添加失败，请重试', false);
+      }
+    }
+    
+    // 删除维度
+    function deleteDimension(dimensionId) {
+      if (assessmentModel.dimensions.length <= 1) {
+        showNotification('至少保留一个评估维度', false);
+        return;
+      }
+      
+      const dimensionIndex = assessmentModel.dimensions.findIndex(dim => dim.id === dimensionId);
+      if (dimensionIndex !== -1) {
+        assessmentModel.dimensions.splice(dimensionIndex, 1);
+        saveToLocalStorage();
+        renderTable();
+        showNotification('评估维度已删除');
+      }
+    }
+    
+    // 添加指标
+    function addIndicator(dimensionId) {
+      const dimension = assessmentModel.dimensions.find(dim => dim.id === dimensionId);
+      if (!dimension) return;
+      
+      // 检查维度中是否有加分项
+      const hasAddIndicators = dimension.indicators.some(ind => ind.type === 'add');
+      
+      // 新指标默认与维度中已有指标类型保持一致
+      let defaultType = 'add';
+      if (!hasAddIndicators && dimension.indicators.length > 0) {
+        defaultType = dimension.indicators[0].type;
+      }
+      
+      // 计算新指标的权重（仅对加分项）
+      let newWeight = 100;
+      if (defaultType === 'add') {
+        const addIndicators = dimension.indicators.filter(ind => ind.type === 'add');
+        newWeight = addIndicators.length > 0 
+          ? 100 / (addIndicators.length + 1) 
+          : 100;
+          
+        // 调整现有加分项的权重
+        addIndicators.forEach(ind => {
+          ind.weight = newWeight;
+        });
+      }
+      
+      // 添加新指标
+      const newIndicator = {
+        id: generateId('ind'),
+        name: `新${defaultType === 'add' ? '加分' : '扣分'}指标`,
+        weight: newWeight,
+        type: defaultType,
+        criteria: '请输入评估标准',
+        score: 0
+      };
+      
+      dimension.indicators.push(newIndicator);
+      saveToLocalStorage();
+      renderTable();
+      showNotification(`已添加新${defaultType === 'add' ? '加分' : '扣分'}指标`);
+    }
+    
+    // 删除指标
+    function deleteIndicator(indicatorId) {
+      for (let dimension of assessmentModel.dimensions) {
+        const indicatorIndex = dimension.indicators.findIndex(ind => ind.id === indicatorId);
+        if (indicatorIndex !== -1) {
+          if (dimension.indicators.length <= 1) {
+            showNotification('每个维度至少保留一个指标', false);
+            return;
+          }
+          
+          const deletedIndicator = dimension.indicators[indicatorIndex];
+          // 删除指标
+          dimension.indicators.splice(indicatorIndex, 1);
+          
+          // 如果是加分项，重新分配权重
+          if (deletedIndicator.type === 'add') {
+            const addIndicators = dimension.indicators.filter(ind => ind.type === 'add');
+            if (addIndicators.length > 0) {
+              const newWeight = 100 / addIndicators.length;
+              addIndicators.forEach(ind => {
+                ind.weight = newWeight;
+              });
+            }
+          }
+          
+          saveToLocalStorage();
+          renderTable();
+          showNotification('评估指标已删除');
+          return;
+        }
+      }
+    }
+    
+    // 页面加载时初始化
+    window.addEventListener('load', () => {
+      // 添加按钮事件
+      document.getElementById('addDimensionBtn').addEventListener('click', addDimension);
+      
+      // 初始渲染
+      renderTable();
+      
+      // 添加表格加载动画
+      const table = document.querySelector('table');
+      table.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+      setTimeout(() => {
+        table.classList.remove('opacity-0');
+      }, 100);
+      
+      // 提示用户数据已加载
+      if (loadFromLocalStorage()) {
+        showNotification('已加载上次保存的评估数据');
+      }
+    });
+  </script>
+</body>
+</html>
+    
